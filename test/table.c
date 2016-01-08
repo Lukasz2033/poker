@@ -1,5 +1,4 @@
 #include "header.h"
-#include "table.h"
 		//	      0	       1       2          3 	
 char* suits[NSUITS] = {"hearts","spades","clubs","diamonds"};
 		//	   0	   1	  2	 3     4       5       6      7     8      9     10      11    12
@@ -12,31 +11,7 @@ char *ret_suit(u8 num){
 char *ret_face(u8 num){
 	return faces[num]; 
 } 
-
-
-void init_window(stats *s){
-	
-	u8 c;
-	for(c=0; c<s->plys_in_game; c++){
-                wplay[c] = newwin(HEIGHT, WIDTH, (c/4)*2*HEIGHT, (WIDTH*c)%(4*WIDTH));
-
-        }
-        ppw = wplay;
-        wstats = newwin(10, 100, 8, 0);
-        commands = newwin(3, 120, 30, 0);
-        debug = newwin(20,100, 35, 0);
-
-}
-
-void delete_window(){
-
-	delwin(wstats);
-        delwin(commands);
-        delwin(debug);
-        endwin();
-	
-}
-
+ 
 void draw_wplys(node *ply, WINDOW **wply, stats *s){
 	u8 c;
 	node *curr;

@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-//#include <ncurses.h>
+#include <ncurses.h>
 #include <unistd.h>
 
 #define WIDTH 30
@@ -55,12 +55,14 @@ typedef struct stats{ // change name to dealer
 
 }stats;
 
-typedef struct game_data{
+/**
+typedef struct game{
 	
 	node  player[6]; 	
 	stats dealer;
 
-}game_data;
+}game;
+**/
 
 typedef struct retu{
 

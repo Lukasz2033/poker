@@ -1,16 +1,11 @@
 #include "header.h"
-#include "table.h"
 
 #define FOLD  1
 #define CALL  2
 #define RISE  3
-extern void init_window(stats *s);
-// Replace with 
-// extern void update_window();
+
 extern void draw_wplys(node *ply, WINDOW **wply, stats *s);
 extern void draw_wstats(stats *s, WINDOW *wstats);
-extern void delete_window();
-
 extern u8 evaluate(card *hand, retu *ret);
 extern u8 compare_res(retu *new, retu *best);
 
@@ -27,6 +22,8 @@ void ask_ply(node *ply, stats *s);
 node *game(node *head, stats *s, WINDOW **wplay);
 void init_dec(card *dec);
 
+WINDOW **ppw, *wplay[3], *commands, *wstats, *debug;	
+
 int main(){
 
 	u8 c;	
@@ -38,8 +35,16 @@ int main(){
 	initscr();
 	echo();
 
-	init_window(&s);
-	
+	for(c=0; c<s.plys_in_game; c++){
+		wplay[c] = newwin(HEIGHT, WIDTH, (c/4)*2*HEIGHT, (WIDTH*c)%(4*WIDTH));
+		
+	}
+	ppw = wplay;
+	wstats = newwin(10, 100, 8, 0);
+	commands = newwin(3, 120, 30, 0);
+	debug = newwin(20,100, 35, 0);
+
+
 	node *head;	
 	head = init(&s);
 	
@@ -52,6 +57,11 @@ int main(){
 	for(c=0; c<6; c++){
 		delwin(wplay[c]);
 	}
+
+	delwin(wstats);
+	delwin(commands);	
+	delwin(debug);
+	endwin(); 
 		
 	return 0;
 }
