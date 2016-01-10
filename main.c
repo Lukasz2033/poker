@@ -7,8 +7,13 @@
 extern void init_window(stats *s);
 // Replace with 
 // extern void update_window();
-extern void draw_wplys(node *ply, WINDOW **wply, stats *s);
-extern void draw_wstats(stats *s, WINDOW *wstats);
+extern void draw_table(node *ply, stats *s);
+extern void draw_wplys(node *ply, stats *s);
+extern void draw_wstats(stats *s);
+extern int get_player_decision1(u8 number);
+extern int get_player_decision2(u8 number);
+extern void display_message1(u8 number);
+extern void display_message2(u8 number);
 extern void delete_window();
 
 extern u8 evaluate(card *hand, retu *ret);
@@ -19,12 +24,13 @@ card dec[52];
 node *init(stats *s);
 node *reload(node *head);
 //void show(node *head, stats *s);
-void show(card *hand);
+//void show(card *hand);
 void rm(node **head, u8 index, stats *s);
 void add(node *head, stats *s);
 void dealer(node *ply, u8 bid);
 void ask_ply(node *ply, stats *s);
-node *game(node *head, stats *s, WINDOW **wplay);
+//node *game(node *head, stats *s, WINDOW **wplay);
+node *game(node *head, stats *s);
 void init_dec(card *dec);
 
 int main(){
@@ -46,12 +52,11 @@ int main(){
 	for(c=0; c<2;c++){	
 		init_dec(dec);
 		s.cards_on_table = 0;
-		head = game(head, &s, ppw);
+		//head = game(head, &s, ppw);
+		head = game(head, &s);
+
 	}
 	
-	for(c=0; c<6; c++){
-		delwin(wplay[c]);
-	}
 		
 	return 0;
 }
@@ -116,28 +121,40 @@ void dealer(node *ply, u8 bid){
 //showdown
 
 void ask_ply(node *ply, stats *s){
+	
 	int ris;
+	
 	//printf("ask_ply\n");
 	if(ply->state != FOLD){
 		//printf("FOLD\n");
+
 		int dec;
 		//printf("Player %d Chose between FOLD (1), CALL (2) or RAISE (3)\n", ply->number);
-		mvwprintw(commands, 0, 0, "Player %d Chose between FOLD (1), CALL (2) or RAISE (3)\n", ply->number);  
-		mvwscanw(commands, 1, 0, "%d", &dec);
-		wrefresh(commands);
+		
+		dec = get_player_decision1(ply->number);
+		//mvwprintw(commands, 0, 0, "Player %d Chose between FOLD (1), CALL (2) or RAISE (3)\n", ply->number);  
+		//mvwscanw(commands, 1, 0, "%d", &dec);
+		//mvwprintw(commands, 2, 0, "Decision: %d\n", dec);  
+		//wrefresh(commands);
+		
 		//mvwprintw(commands, 1, 0, "%d\n", dec);  	
+		
 		u8 c = 0;  // number of tries	
 		while( dec < 1 || dec > 3 ){
 			if(c <10){	
 				//printf("Player %d Chose between FOLD (1), CALL (2) or RAISE (3)\n", ply->number);
-				mvwprintw(commands, 0, 0, "Player %d Chose between FOLD (1), CALL (2) or RAISE (3)\n", ply->number);  
-				mvwprintw(commands, 2, 0, "Try again!\n");  
-				wrefresh(commands);
 				
-				//scanf("%d", &dec);
-				mvwscanw(commands, 1, 0, "%d", &dec);
-				mvwprintw(commands, 2, 0, "Decision: %d\n", dec);  
-				wrefresh(commands);					
+				display_message1(ply->number);
+				//mvwprintw(commands, 0, 0, "Player %d Chose between FOLD (1), CALL (2) or RAISE (3)\n", ply->number);  
+				//mvwprintw(commands, 2, 0, "Try again!\n");  
+				//wrefresh(commands);
+				
+				// scanf("%d", &dec);
+				dec = get_player_decision1(ply->number);
+				//mvwprintw(commands, 0, 0, "Player %d Chose between FOLD (1), CALL (2) or RAISE (3)\n", ply->number);  
+				//mvwscanw(commands, 1, 0, "%d", &dec);
+				//mvwprintw(commands, 2, 0, "Decision: %d\n", dec);  
+				//wrefresh(commands);					
 			}
 			else{
 				dec = FOLD; // If input was incorrect too many times default to FOLD
@@ -152,18 +169,28 @@ void ask_ply(node *ply, stats *s){
 			dealer(ply, s->mony);
 			ply->state = CALL;	
 		}
+		/*
 		else if(dec == RISE){
 			//printf("How much?\n");
-			mvwprintw(commands, 0, 0, "Player %d: How much?\n", ply->number);  
-			mvwscanw(commands, 1, 0, "%d", &ris);
-			wrefresh(commands);
+			ris = get_player_decision2(ply->number);	
+			//mvwprintw(commands, 0, 0, "Player %d: How much?\n", ply->number);  
+			//mvwscanw(commands, 1, 0, "%d", &ris);
+			ply->state = CALL;	
+		}*/
+		else if(dec == RISE){
+			//printf("How much?\n");
+			ris = get_player_decision2(ply->number);
+			//mvwprintw(commands, 0, 0, "Player %d: How much?\n", ply->number);  
+			//mvwscanw(commands, 1, 0, "%d", &ris);
+			//wrefresh(commands);
 			
 			//scanf("%d", &ris);
 			while(ris <= 0){ // Make sure rise is not equal or less than 0
 				//printf("How much?\n");
-				mvwprintw(commands, 0, 0, "Player %d: How much?\n", ply->number);  
-				wrefresh(commands);	
-				mvwscanw(commands, 1, 0, "%d", &ris);	
+				ris = get_player_decision2(ply->number);
+				//mvwprintw(commands, 0, 0, "Player %d: How much?\n", ply->number);  
+				//wrefresh(commands);	
+				//mvwscanw(commands, 1, 0, "%d", &ris);	
 				//scanf("%d", &ris);	
 			}
 			s->mony += ris;
@@ -171,13 +198,16 @@ void ask_ply(node *ply, stats *s){
 			s->rise = ply;
 			ply->state = RISE;				
 		}
-		else
-			mvwprintw(commands, 0, 0, "Incorrect value \n");  	
-			wrefresh(commands);
+		else{
+			display_message2(ply->number);
+			//mvwprintw(commands, 0, 0, "Incorrect value \n");  	
+			//wrefresh(commands);
 			//printf("Incorrect value \n");
+		}
 	}
 }
-
+//Uncomment
+/*
 void show(card *hand){
 	u8 c;
 	for(c=0;c<7;c++){
@@ -186,7 +216,7 @@ void show(card *hand){
 	wrefresh(debug);		
 	
 }
-
+*/
 void showdown(node *ply, stats *s, u8 *win){
 	u8 c, pl, v, e, i = 0;
 	card hand[7];
@@ -210,10 +240,10 @@ void showdown(node *ply, stats *s, u8 *win){
 		hand[5+v] =  p->hand[v];
 	}
 
-	show(hand);
+	//show(hand);
 	evaluate(hand, &best);	
 	win[i] = p->number;
-	wprintw(debug,"\nP: %d, N: %d\n\n",p->number, best.hand);	
+// uncomment	wprintw(debug,"\nP: %d, N: %d\n\n",p->number, best.hand);	
 	pl++;
 	p = p->next;
 		
@@ -225,14 +255,14 @@ void showdown(node *ply, stats *s, u8 *win){
 			for(v=0; v<2; v++){
 				hand[5+v] = p->hand[v];
 			}
-			show(hand);
+			//show(hand);
 			evaluate(hand, &new);
-			wprintw(debug,"\nP: %d, N: %d\n\n",p->number, new.hand);	
-			wrefresh(debug);	
+//Uncomment		wprintw(debug,"\nP: %d, N: %d\n\n",p->number, new.hand);	
+//Uncomment			wrefresh(debug);	
 			
 			e = compare_res(&new, &best);
 			
-			wprintw(debug,"Decision:%d\n\n",e);	
+//Uncomment		wprintw(debug,"Decision:%d\n\n",e);	
 			
 			if(e == 0){ // new higher
 				for(v=0; v<10; v++){
@@ -245,7 +275,7 @@ void showdown(node *ply, stats *s, u8 *win){
 				i++;
 				win[i] = p->number;
 			}
-			wrefresh(debug);		
+//Uncomment		wrefresh(debug);		
 			p = p->next;	
 		}
 		else
@@ -253,7 +283,8 @@ void showdown(node *ply, stats *s, u8 *win){
 	}	
 }
 
-node *game(node *head, stats *s, WINDOW **wplay){
+//node *game(node *head, stats *s, WINDOW **wplay){
+node *game(node *head, stats *s){
 	
 	// Variables
 	// c - iterates through players
@@ -291,17 +322,19 @@ node *game(node *head, stats *s, WINDOW **wplay){
 	river=0;
 	first=1;
 
-	draw_wplys(head, wplay, s);	
-	draw_wstats(s, wstats);
+	draw_table(head, s);		
+	//draw_wplys(head, s);	
+	//draw_wstats(s);
 	
-	while(c < 4 && s->folded != 1){
+	while(c < 4 && s->folded != 1){  // Go over Flop, River making sure that more than one ply in the game
 		while(curr != s->rise || first){
 			first=0;
 			if(curr->state != FOLD)
 				ask_ply(curr, s);	
 			
-			draw_wstats(s, wstats);		
-			draw_wplys(head, wplay, s);	
+			draw_table(head, s);	
+			//draw_wstats(s);		
+			//draw_wplys(head, s);	
 			curr = curr->next;
 		}
 		if(s->folded != 1){
@@ -318,12 +351,16 @@ node *game(node *head, stats *s, WINDOW **wplay){
 				z++;
 				s->cards_on_table++;
 			}
-			draw_wstats(s, wstats);			
-			draw_wplys(head, wplay, s);
+			
+			draw_table(head, s);	
+			//draw_wstats(s);			
+			//draw_wplys(head, s);
 			if(c<3) // dont ask if all cards are on the table
-				ask_ply(curr, s);  // Begin with	
-			draw_wstats(s, wstats);			
-			draw_wplys(head, wplay, s);	
+				ask_ply(curr, s);  // Begin with
+			
+			draw_table(head, s);	
+			//draw_wstats(s);			
+			//draw_wplys(head, s);	
 			curr = curr->next; // Ask player who raised last time here cos round finishes when it gets here
 			c++;
 		}
@@ -334,8 +371,8 @@ node *game(node *head, stats *s, WINDOW **wplay){
 	showdown(head, s, win);
 		
 	for(v=0; v<2; v++){
-		wprintw(debug,"\nWinners: %d\n", win[v]);			
-		wrefresh(debug);	
+// Uncomment		wprintw(debug,"\nWinners: %d\n", win[v]);			
+// Uncomment		wrefresh(debug);	
 	}
 	
 	// Collect stakes and check who takes it
@@ -366,9 +403,10 @@ node *game(node *head, stats *s, WINDOW **wplay){
 		}
 		curr = curr->next;
 	}
-	
-	draw_wplys(head, wplay, s);	
-	draw_wstats(s, wstats);
+
+	draw_table(head, s);	
+	//draw_wplys(head, s);	
+	//draw_wstats(s);
 	
 	//printf("end3\n");
 	//while(1){
@@ -423,13 +461,6 @@ void add(node *head, stats *s){
 			new = (node*)malloc(sizeof(node));
 			prev->next = new;
 			new->next = curr;
-			new->number = prev->number+1; 	
-			s->plys_in_game++;	
-			break;			
 		}
-		prev=prev->next;
-		curr=curr->next;
 	}
 }
-
-

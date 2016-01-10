@@ -1,4 +1,7 @@
 #include <ncurses.h>
 
-WINDOW **ppw, *wplay[3], *commands, *wstats, *debug;
+typedef struct window{
+	
+	WINDOW **ppw, *wplay[3], *commands, *wstats, *debug;
 
+}window;
