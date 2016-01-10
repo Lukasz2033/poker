@@ -4,20 +4,21 @@
 #define FOLD  1
 #define CALL  2
 #define RISE  3
-extern void init_window(stats *s);
+
+//extern void init_window(stats *s);
 // Replace with 
 // extern void update_window();
-extern void draw_table(node *ply, stats *s);
-extern void draw_wplys(node *ply, stats *s);
-extern void draw_wstats(stats *s);
-extern int get_player_decision1(u8 number);
-extern int get_player_decision2(u8 number);
-extern void display_message1(u8 number);
-extern void display_message2(u8 number);
-extern void delete_window();
+//extern void draw_table(node *ply, stats *s);
+//extern void draw_wplys(node *ply, stats *s);
+//extern void draw_wstats(stats *s);
+//extern int get_player_decision1(u8 number);
+//extern int get_player_decision2(u8 number);
+//extern void display_message(u8 number, char *message);
+//extern void display_message2(u8 number);
+//extern void delete_window();
 
-extern u8 evaluate(card *hand, retu *ret);
-extern u8 compare_res(retu *new, retu *best);
+//extern u8 evaluate(card *hand, retu *ret);
+//extern u8 compare_res(retu *new, retu *best);
 
 card dec[52];
 
@@ -56,8 +57,7 @@ int main(){
 		head = game(head, &s);
 
 	}
-	
-		
+			
 	return 0;
 }
 
@@ -120,92 +120,50 @@ void dealer(node *ply, u8 bid){
 
 //showdown
 
-void ask_ply(node *ply, stats *s){
+void ask_ply(node *player, stats *status){
 	
-	int ris;
+	u8 decision;
+	u16 rise;
 	
-	//printf("ask_ply\n");
-	if(ply->state != FOLD){
-		//printf("FOLD\n");
+	if(player->state != FOLD){
 
-		int dec;
-		//printf("Player %d Chose between FOLD (1), CALL (2) or RAISE (3)\n", ply->number);
+		decision = get_player_decision1(player->number);
 		
-		dec = get_player_decision1(ply->number);
-		//mvwprintw(commands, 0, 0, "Player %d Chose between FOLD (1), CALL (2) or RAISE (3)\n", ply->number);  
-		//mvwscanw(commands, 1, 0, "%d", &dec);
-		//mvwprintw(commands, 2, 0, "Decision: %d\n", dec);  
-		//wrefresh(commands);
-		
-		//mvwprintw(commands, 1, 0, "%d\n", dec);  	
-		
-		u8 c = 0;  // number of tries	
-		while( dec < 1 || dec > 3 ){
-			if(c <10){	
-				//printf("Player %d Chose between FOLD (1), CALL (2) or RAISE (3)\n", ply->number);
+		u8 number_of_tries = 0;  // number of tries	
+		while( decision < 1 || decision > 3 ){
+			if(number_of_tries <10){	
 				
-				display_message1(ply->number);
-				//mvwprintw(commands, 0, 0, "Player %d Chose between FOLD (1), CALL (2) or RAISE (3)\n", ply->number);  
-				//mvwprintw(commands, 2, 0, "Try again!\n");  
-				//wrefresh(commands);
-				
-				// scanf("%d", &dec);
-				dec = get_player_decision1(ply->number);
-				//mvwprintw(commands, 0, 0, "Player %d Chose between FOLD (1), CALL (2) or RAISE (3)\n", ply->number);  
-				//mvwscanw(commands, 1, 0, "%d", &dec);
-				//mvwprintw(commands, 2, 0, "Decision: %d\n", dec);  
-				//wrefresh(commands);					
-			}
-			else{
-				dec = FOLD; // If input was incorrect too many times default to FOLD
+				display_message(player->number, "Try again!\n");
+				decision = get_player_decision1(player->number);
+			}	
+			else{ // If input was incorrect too many times default to FOLD 	
+				decision = FOLD;
 				break;
 			}	
 		}	
-		if(dec == FOLD){
-			ply->state = FOLD;
-			s->folded--;
+		
+		if(decision == FOLD){
+			player->state = FOLD;
+			status->folded--;
 		}
-		else if(dec == CALL){
-			dealer(ply, s->mony);
-			ply->state = CALL;	
+		else if(decision == CALL){
+			dealer(player, status->mony);
+			player->state = CALL;	
 		}
-		/*
-		else if(dec == RISE){
-			//printf("How much?\n");
-			ris = get_player_decision2(ply->number);	
-			//mvwprintw(commands, 0, 0, "Player %d: How much?\n", ply->number);  
-			//mvwscanw(commands, 1, 0, "%d", &ris);
-			ply->state = CALL;	
-		}*/
-		else if(dec == RISE){
-			//printf("How much?\n");
-			ris = get_player_decision2(ply->number);
-			//mvwprintw(commands, 0, 0, "Player %d: How much?\n", ply->number);  
-			//mvwscanw(commands, 1, 0, "%d", &ris);
-			//wrefresh(commands);
+		else if(decision == RISE){
 			
-			//scanf("%d", &ris);
-			while(ris <= 0){ // Make sure rise is not equal or less than 0
-				//printf("How much?\n");
-				ris = get_player_decision2(ply->number);
-				//mvwprintw(commands, 0, 0, "Player %d: How much?\n", ply->number);  
-				//wrefresh(commands);	
-				//mvwscanw(commands, 1, 0, "%d", &ris);	
-				//scanf("%d", &ris);	
+			rise = get_player_decision2(player->number, "Player raised\n");
+			while(rise <= 0){ // Make sure rise is not equal or less than 0
+				rise = get_player_decision2(player->number, "Invalid value, must be above 0\n");
 			}
-			s->mony += ris;
-			dealer(ply, s->mony);	
-			s->rise = ply;
-			ply->state = RISE;				
-		}
-		else{
-			display_message2(ply->number);
-			//mvwprintw(commands, 0, 0, "Incorrect value \n");  	
-			//wrefresh(commands);
-			//printf("Incorrect value \n");
+			status->mony += rise;
+			dealer(player, status->mony);	
+			status->rise = player;
+			player->state = RISE;				
 		}
 	}
 }
+
 //Uncomment
 /*
 void show(card *hand){
@@ -217,6 +175,7 @@ void show(card *hand){
 	
 }
 */
+
 void showdown(node *ply, stats *s, u8 *win){
 	u8 c, pl, v, e, i = 0;
 	card hand[7];

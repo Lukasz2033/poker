@@ -13,7 +13,7 @@ char *ret_face(u8 num){
 	return faces[num]; 
 } 
 
-
+// Create structure with all windows
 window win;
 
 
@@ -28,7 +28,6 @@ void init_window(stats *s){
         win.wstats = newwin(10, 100, 8, 0);
         win.commands = newwin(3, 120, 30, 0);
         win.debug = newwin(20,100, 35, 0);
-
 }
 
 void delete_window(){
@@ -42,8 +41,7 @@ void delete_window(){
 	delwin(win.wstats);
         delwin(win.commands);
         delwin(win.debug);
-        endwin();
-	
+        endwin();	
 }
 
 void draw_table(node *ply, stats *s){
@@ -111,35 +109,24 @@ int get_player_decision1(u8 number){
 }
 
 
-int get_player_decision2(u8 number){
+int get_player_decision2(u8 number, char *message){
 
         int dec;
 
         mvwprintw(win.commands, 0, 0, "Player %d How much?\n", number);
         mvwprintw(win.commands, 1, 0, "");
         mvwscanw(win.commands, 1, 0, "%d", &dec);
-        mvwprintw(win.commands, 2, 0, "Player raised by  %d\n", dec);
+        mvwprintw(win.commands, 2, 0, message, dec);
         wrefresh(win.commands);
 
         return dec;
 }
 
-void display_message1(u8 number){
+void display_message(u8 number, char *message){
 
-	 mvwprintw(win.commands, 0, 0, "Try again!\n");
-	//mvwprintw(win.commands, 0, 0, "Player %d Chose between FOLD (1), CALL (2) or RAISE (3)\n", number);
+	 mvwprintw(win.commands, 0, 0, "Player %d Chose between FOLD (1), CALL (2) or RAISE (3)\n", number);
          mvwprintw(win.commands, 1, 0, ""); 
-	 mvwprintw(win.commands, 2, 0, "");
+	 mvwprintw(win.commands, 2, 0, message);
 	 wrefresh(win.commands);
-
 }
 
-void display_message2(u8 number){
-
-	 mvwprintw(win.commands, 0, 0, "Incorrect value \n");
- 	// mvwprintw(win.commands, 0, 0, "Player %d Chose between FOLD (1), CALL (2) or RAISE (3)\n", number);
-         mvwprintw(win.commands, 1, 0, ""); 
-	 mvwprintw(win.commands, 2, 0, "");
-         wrefresh(win.commands);
-
-}
