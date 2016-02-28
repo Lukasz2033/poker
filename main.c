@@ -1,10 +1,6 @@
 #include "header.h"
 #include "table.h"
 
-#define FOLD  1
-#define CALL  2
-#define RISE  3
-
 //extern void init_window(stats *s);
 // Replace with 
 // extern void update_window();
@@ -22,46 +18,54 @@
 
 card dec[52];
 
-node *init(stats *s);
-node *reload(node *head);
+void *init_players(stats *s);
+//node *reload(node *head);
 //void show(node *head, stats *s);
 //void show(card *hand);
-void rm(node **head, u8 index, stats *s);
-void add(node *head, stats *s);
+void rm(u8 index, stats *s);
+void add(stats *s);
 void dealer(node *ply, u8 bid);
-void ask_ply(node *ply, stats *s);
+void process_player_input(node *ply, stats *s);
 //node *game(node *head, stats *s, WINDOW **wplay);
-node *game(node *head, stats *s);
-void init_dec(card *dec);
+void game(stats *s);
+void init_deck(card *dec);
 
-int main(){
 
-	u8 c;	
-	stats s;	
-	s.plys_in_game = 3;
-	s.bigblind = 20;
-	s.cards_on_table = 0;
 
-	initscr();
-	echo();
 
-	init_window(&s);
-	
-	node *head;	
-	head = init(&s);
-	
-	for(c=0; c<2;c++){	
-		init_dec(dec);
-		s.cards_on_table = 0;
-		//head = game(head, &s, ppw);
-		head = game(head, &s);
+		//	      0	       1       2          3 	
+char* suits[NSUITS] = {"hearts","spades","clubs","diamonds"};
+		//	   0	   1	  2	 3     4       5       6      7     8      9     10      11    12
+char* faces[NFACES] = {"two","three","four","five","six","seven","eight","nine","ten","jack","queen","king","ace"};
 
-	}
-			
-	return 0;
+char *ret_suit(u8 num){
+	return suits[num]; 
 }
 
-void init_dec(card *dec){
+char *ret_face(u8 num){
+	return faces[num]; 
+} 
+
+
+void main(){
+
+	stats s;	
+	s.plys_in_game = 6;
+	s.bigblind = 20;
+	s.cards_on_table = 0;
+	
+	init_players(&s);
+	init_window(&s);		
+	
+	while(1){	
+		init_deck(dec);
+		s.cards_on_table = 0;
+		game(&s);
+	}
+
+}
+
+void init_deck(card *dec){
 	srand(time(NULL));
 	u8 i, j, c=0, r;
 	card temp;	
@@ -80,61 +84,51 @@ void init_dec(card *dec){
 	}
 }
 
-node *init(stats *s){
-	node *head, *current;	
+void *init_players(stats *s){
+	node *current;	
 	u8 c;
-	head = (node*)malloc(sizeof(node));
-	current = head;
+	s->head = (node*)malloc(sizeof(node));
+	current = s->head;
 	current->number=1;
 	current->credit=200;
 	current->stake=0;
+	current->hand_name=10;
+	
 	for(c=2; c<(s->plys_in_game)+1; c++){	
 		current->next = (node*)malloc(sizeof(node));
 		current = current->next;		
 		current->number = c;
 		current->credit=200;
-		current->stake=0;	
+		current->stake=0;
+		current->hand_name=10;
+	
 	}
-	current->next=head;
-return head;
+	current->next=s->head;
 }
 
-
-/*
-void process_plys(u8 instruction){
-
-	switch()
-		case 0:
-			#hand cards
-		case 1:
-			#collect stakes
-		case 2:
-			#
-*/
 
 void dealer(node *ply, u8 bid){
 	ply->credit -= (bid-ply->stake);
 	ply->stake = bid;	
 }
-	
 
-//showdown
-
-void ask_ply(node *player, stats *status){
+void process_player_input(node *player, stats *status){
 	
 	u8 decision;
 	u16 rise;
 	
 	if(player->state != FOLD){
 
-		decision = get_player_decision1(player->number);
+		//decision = get_player_decision1(player->number);
+		decision = get_input(win.commands);
 		
 		u8 number_of_tries = 0;  // number of tries	
 		while( decision < 1 || decision > 3 ){
 			if(number_of_tries <10){	
 				
 				display_message(player->number, "Try again!\n");
-				decision = get_player_decision1(player->number);
+				//decision = get_player_decision1(player->number);
+				decision = get_input(win.commands);
 			}	
 			else{ // If input was incorrect too many times default to FOLD 	
 				decision = FOLD;
@@ -147,7 +141,7 @@ void ask_ply(node *player, stats *status){
 			status->folded--;
 		}
 		else if(decision == CALL){
-			dealer(player, status->mony);
+			dealer(player, status->money_to_play);
 			player->state = CALL;	
 		}
 		else if(decision == RISE){
@@ -156,70 +150,118 @@ void ask_ply(node *player, stats *status){
 			while(rise <= 0){ // Make sure rise is not equal or less than 0
 				rise = get_player_decision2(player->number, "Invalid value, must be above 0\n");
 			}
-			status->mony += rise;
-			dealer(player, status->mony);	
-			status->rise = player;
+			status->money_to_play += rise;
+			dealer(player, status->money_to_play);	
+			status->last = player; // Update last player to the one that rised!
 			player->state = RISE;				
 		}
 	}
 }
 
-//Uncomment
-/*
-void show(card *hand){
-	u8 c;
-	for(c=0;c<7;c++){
-		wprintw(debug,"%d,", hand[c].face);
-	}
-	wrefresh(debug);		
+void evaluate_hands(stats *status){
 	
-}
-*/
+	u8 hand_index, current_player;
+	
 
-void showdown(node *ply, stats *s, u8 *win){
-	u8 c, pl, v, e, i = 0;
 	card hand[7];
 	retu r, new, best;	
-	node *p;
-	p = ply;
+	
+	node *player;
+	player = status->head;
 
+	char str[100];			
+	
+	// Collect all cards shared cards into one array
+	for(hand_index=0; hand_index<5; hand_index++){
+		hand[hand_index] = status->shared_cards[hand_index];
+		//sprintf(str, "player %d cards -> %s/%s\n", player->number, 	ret_suit(hand[hand_index].suit),
+		//								ret_face(hand[hand_index].face));	
+		//debug_one_line(str);	
+	}
+	
+	for(current_player=0; current_player<(status->plys_in_game); current_player++){
+		if(player->state != FOLD){
+			
+			for(hand_index=0; hand_index<5; hand_index++){
+				hand[hand_index] = status->shared_cards[hand_index];
+				//sprintf(str, "player %d cards -> %s/%s\n", player->number, 	ret_suit(hand[hand_index].suit),
+				//								ret_face(hand[hand_index].face));	
+				//debug_one_line(str);	
+			}				
+			// Update players cards
+			for(hand_index=0; hand_index<2; hand_index++){
+				hand[5+hand_index] = player->hand[hand_index];
+				//sprintf(str, "player %d cards -> %s/%s\n", player->number, 	ret_suit(hand[5+hand_index].suit),
+				//								ret_face(hand[5+hand_index].face));	
+				//debug_one_line(str);	
+			}
+			player->hand_name = evaluate_test(hand);			
+			//debug_print_hand(player->number, new.hand);
+		}		
+		player = player->next;			
+	}	
+}
+
+//void prepare_new_game(status 
+
+void showdown(stats *s, u8 *win){
+	
+	u8 c, begin=0, v, e, i = 0;
+	
+
+	card hand[7];
+	retu r, new, best;	
+	
+	node *player;
+	player = s->head;
+
+	char str[100];		
+	
 	for(c=0; c<10; c++){
 		win[c] = 222;
 	}
 	
-	while(p->state == FOLD){ // Start with first player that id not folded
-		printf("fold\n");
-		pl++;
-		p = p->next;
+	while(player->state == FOLD){ // Start with first player that did not fold
+		debug_one_line("Some players folded\n");	
+		begin++;
+		player = player->next;
 	}				
+	
+	// Collect all cards together shared cards and indvidual player cards
 	for(c=0; c<5; c++){
-		hand[c] = s->hand[c];
+		hand[c] = s->shared_cards[c];
+		sprintf(str, "player %d cards -> %s/%s\n", player->number, 	ret_suit(hand[c].suit),
+										ret_face(hand[c].face));	
+		debug_one_line(str);	
 	}
-	for(v=0; v<2; v++){
-		hand[5+v] =  p->hand[v];
+	for(c=0; c<2; c++){
+		hand[5+c] =  player->hand[c];
+		sprintf(str, "player %d cards -> %s/%s\n", player->number, 	ret_suit(hand[5+c].suit),
+										ret_face(hand[5+c].face));
+		debug_one_line(str);	
 	}
 
-	//show(hand);
+	
+	sprintf(str, "Begining with player %d\n", player->number );
+	debug_one_line(str);	
+	
 	evaluate(hand, &best);	
-	win[i] = p->number;
-// uncomment	wprintw(debug,"\nP: %d, N: %d\n\n",p->number, best.hand);	
-	pl++;
-	p = p->next;
+	win[i] = player->number;
+	
+	debug_print_hand(player->number, best.hand);
+	
+	begin++;
+	player = player->next;
 		
-	for(pl; pl<(s->plys_in_game-1); pl++){
-		if(p->state != FOLD){	
-			for(v=0; v<5; v++){
-				hand[v] = s->hand[v];
+	for(begin; begin<(s->plys_in_game); begin++){
+		if(player->state != FOLD){	
+			for(c=0; c<2; c++){
+				hand[5+c] = player->hand[c];
 			}
-			for(v=0; v<2; v++){
-				hand[5+v] = p->hand[v];
-			}
-			//show(hand);
-			evaluate(hand, &new);
-//Uncomment		wprintw(debug,"\nP: %d, N: %d\n\n",p->number, new.hand);	
-//Uncomment			wrefresh(debug);	
-			
-			e = compare_res(&new, &best);
+
+			evaluate(hand, &new);			
+			debug_print_hand(player->number, new.hand);
+			e = compare_res(&new, &best); // Compare two results and returns 0 if one is better and 1 if we have a tie
 			
 //Uncomment		wprintw(debug,"Decision:%d\n\n",e);	
 			
@@ -228,154 +270,183 @@ void showdown(node *ply, stats *s, u8 *win){
 					win[c] = 222;
 				}		
 				i=0;
-				win[i] = p->number;
+				win[i] = player->number;
 			}
 			else if(e == 1){ // a tie
 				i++;
-				win[i] = p->number;
+				win[i] = player->number;
 			}
-//Uncomment		wrefresh(debug);		
-			p = p->next;	
+
+			player = player->next;	
 		}
-		else
-			p = p->next;		
+		else{
+			player = player->next;		
+		}
 	}	
 }
 
-//node *game(node *head, stats *s, WINDOW **wplay){
-node *game(node *head, stats *s){
+
+void game(stats *status){
 	
-	// Variables
-	// c - iterates through players
-	// v - iterates through players hand
-	// z - iterates through deck
-	// ---------------> 0 <-----------------	
+	u8 player, round, card_for_player, cards_on_table=0, card_from_deck=0, first;
+	u16 stake=0; 
 
-	u8 c, v, z=0, river, first;
-	u16 stake; 
+	
+	node *head = status->head;
 
-	for(c=0; c<s->plys_in_game;c++){ // Hand cards
-		for(v=0; v<2; v++){
-			head->hand[v] = dec[z];
-			z++;
+	 // Hand out cards 	
+	for(player=0; player<status->plys_in_game; player++){ // Go through all players
+		for(card_for_player=0; card_for_player<2; card_for_player++){ // Hand out 3 cards (floop)
+			head->hand[card_for_player] = dec[card_from_deck++];
 		}
-		head=head->next;
+		head=head->next; // Go to the next player
 	}
 
-	s->mony = 0;
-	node *curr;
+	status->money_to_play = 0;  // Minimum bid to stay in the game
+	node *curr = head;  // This pointer keeps track of active player in current round ( keep track of big/small blindes )
 
-	s->rise = head->next;		// round ends with big blid if no one rise	
-	s->mony = s->bigblind;  	// minimum call equal to big blind
-	
-	curr = head;
-	dealer(head, s->mony); 		// take big blind	
-	
-	curr = head->next ;		// begin with small blind
-	dealer(curr, s->mony/2);	// take small blind
+	status->last = head->next;		// round ends with big blind unless someone rise	
+	status->money_to_play = status->bigblind;  	// minimum call equal to big blind
+
+	// Big & Small blinds	
+	dealer(head, status->money_to_play); 	// take big blind		
+	curr = head->next ;			// begin with small blind
+	dealer(curr, status->money_to_play/2);	// take small blind
+
 	//show(curr, s);
 	
-	s->folded = s->plys_in_game;
+	status->folded = status->plys_in_game; // Keep track of how many plyers are sitll in the game
 	
-	c=0;	
-	river=0;
-	first=1;
-
-	draw_table(head, s);		
-	//draw_wplys(head, s);	
-	//draw_wstats(s);
+	round=FLOP;	
+	first=1; // variable is used to 
 	
-	while(c < 4 && s->folded != 1){  // Go over Flop, River making sure that more than one ply in the game
-		while(curr != s->rise || first){
+	draw_table(status);
+	
+	// Flop -> Turn -> River 	
+	while(round <= RIVER && status->folded > 1){  // Go over Flop, River making sure that more than one ply in the game
+				
+		while((curr != status->last || first) && status->folded > 1){
 			first=0;
 			if(curr->state != FOLD)
-				ask_ply(curr, s);	
-			
-			draw_table(head, s);	
-			//draw_wstats(s);		
-			//draw_wplys(head, s);	
+				process_player_input(curr, status);		
+			draw_table(status);	
 			curr = curr->next;
 		}
-		if(s->folded != 1){
-			if(c == 0){ // River
-				for(v=0; v<3; v++){
-					s->hand[v] = dec[z];
-					z++;
-					s->cards_on_table = 3;
+
+		if(status->folded > 1){ // If there are at least 2 players in the game
+			// Put cards on table
+			if(round == FLOP){  // On flop put three cards on the table
+				for(cards_on_table=0; cards_on_table<3; cards_on_table++){
+					status->shared_cards[cards_on_table] = dec[card_from_deck++];
+					char str[150];
+					
+					sprintf(str, "[game]Flop: %s, %s", ret_suit(status->shared_cards[cards_on_table].suit),
+								 ret_face(status->shared_cards[cards_on_table].face));
+					debug_one_line(str);	
+					
 				}
+				status->cards_on_table = 3;
 			}
-			else if(c>0 && c<3){ // Flop and Turn
-				s->hand[v] = dec[z];
-				v++;
-				z++;
-				s->cards_on_table++;
-			}
+			else if(round == TURN || round == RIVER){ // On turn and river put one card on the table
 			
-			draw_table(head, s);	
-			//draw_wstats(s);			
-			//draw_wplys(head, s);
-			if(c<3) // dont ask if all cards are on the table
-				ask_ply(curr, s);  // Begin with
+				char *round_n = " ";	
+				if(round == TURN) 
+					round_n = "Turn";	
+				else if(round == RIVER)
+					round_n = "River";	
+					
+				status->shared_cards[status->cards_on_table] = dec[card_from_deck++];
 			
-			draw_table(head, s);	
-			//draw_wstats(s);			
-			//draw_wplys(head, s);	
-			curr = curr->next; // Ask player who raised last time here cos round finishes when it gets here
-			c++;
+				char str[150];	
+				sprintf(str, "[game] %s: %s, %s",round_n, ret_suit(status->shared_cards[status->cards_on_table].suit),
+							 ret_face(status->shared_cards[status->cards_on_table].face));
+				debug_one_line(str);	
+				
+				status->cards_on_table++;
+			}	
+			draw_table(status);	
+			
+			if(round <= RIVER) // dont ask if all cards are on the table
+				process_player_input(curr, status);  // Begin with
+			
+			draw_table(status);	
+			curr = curr->next; // Ask player who raised last time here 
+					   // cos round finishes when it gets here
+			round++;
 		}
-	}
-	
-	//printf("Showdown\n");
-	u8 win[10];	
-	showdown(head, s, win);
 		
-	for(v=0; v<2; v++){
-// Uncomment		wprintw(debug,"\nWinners: %d\n", win[v]);			
-// Uncomment		wrefresh(debug);	
+		//char str[15];
+		//sprintf(str, "Folded: %d", status->folded);
+		//debug_one_line(str);	
 	}
+
+
+
+
+
+// End of game, find who won
+	debug_one_line("[game] Showdown\n");	
+	
+	evaluate_hands(status);
+	
+	//u8 win[10];	
+	//showdown(status, win);
+		
+	//for(card_for_player=0; card_for_player<2; card_for_player++){
+// Uncomment		wprintw(debug,"\nWinners: %d\n", win[card_for_player]);			
+// Uncomment		wrefresh(debug);	
+	//}
 	
 	// Collect stakes and check who takes it
 	curr = head;
 
-	printf("end0\n");
-	for(c=0; c<s->plys_in_game; c++){
+	for(player=0; player<status->plys_in_game; player++){
 		stake += curr->stake;	
 		curr->state=0;	
 		curr->stake=0;
 		curr=curr->next;	
 	}	
 
-	u8 wi=0;
-	//printf("end1\n");
-	while(win[wi] != 222){
-		wi++;
-	}
-	stake /= wi;
-	printf("%d\n",stake);
-
+	//u8 wi=0;
+	//while(win[wi] != 222){
+	//	wi++;
+	//}
+	//stake /= wi;
+	/**
 	curr = head;	
-	//printf("end2\n");
-	for(c=0; c<s->plys_in_game; c++){
-		for(v=0; v<10; v++){
-			if(win[v] !=  222 && win[v] == curr->number)
+	for(player=0; player<status->plys_in_game; player++){
+		for(card_for_player=0; card_for_player<10; card_for_player++){
+			if(win[card_for_player] !=  222 && win[card_for_player] == curr->number)
 				curr->credit += stake;	
 		}
 		curr = curr->next;
 	}
-
-	draw_table(head, s);	
-	//draw_wplys(head, s);	
-	//draw_wstats(s);
+	**/
+	debug_one_line("[game] New game\n");	
+	draw_table(status);
 	
-	//printf("end3\n");
-	//while(1){
-		
-	//}
-	return head->next;	// Shift big blind by one	
+	stop_game();	
+	status->head = head->next;	
 }
 
-void rm(node **head, u8 index, stats *s){
 
+
+
+
+
+
+
+
+
+
+
+
+
+// ADD & REMOVE nodes
+void rm(u8 index, stats *s){
+
+	node **head;
+	head = &s->head;
 	node *prev, *curr;
 	prev = *head;
 	curr = (**head).next;
@@ -398,8 +469,9 @@ void rm(node **head, u8 index, stats *s){
 	head = 0;
 }
 
-void add(node *head, stats *s){
+void add(stats *s){
 	
+	node *head = s->head;
 	node *prev, *curr, *new;
 	prev = head;
 	curr = head->next;
